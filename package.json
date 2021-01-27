@@ -1,0 +1,10 @@
+{
+	"name": "browsequire",
+	"version": "1.0.0",
+	"description": "",
+	"scripts": {
+		"commit": "git add ./ && git commit -m "
+	},
+	"author": "",
+	"license": "ISC"
+}
