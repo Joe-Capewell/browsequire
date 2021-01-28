@@ -58,7 +58,7 @@
 	}
 
 	async function findAsModule(module) {
-		var modulePath = "node_modules/" + module;
+		var modulePath = "browsequire/" + module;
 		var packageRequest = await fetch(modulePath + "/package.json");
 		if (packageRequest.status === 200) {
 			var main = (await packageRequest.json()).main;
