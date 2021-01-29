@@ -4,7 +4,7 @@
 	"description": "",
 	"scripts": {
 		"commit": "git add ./ && git commit -m ",
-		"push": "git remote add origin git@github.com:Joe-Capewell/browsequire.git",
+		"push": "git push",
 		"test": "node tests/server.js"
 	},
 	"bin": "bins.js",

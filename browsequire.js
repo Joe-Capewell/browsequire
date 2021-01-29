@@ -1,47 +1,17 @@
 (function (window) {
-	var getFromBetween = {
-		results: [],
-		string: "",
-		getFromBetween: function (sub1, sub2) {
-			if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
-				return false;
-			var SP = this.string.indexOf(sub1) + sub1.length;
-			var string1 = this.string.substr(0, SP);
-			var string2 = this.string.substr(SP);
-			var TP = string1.length + string2.indexOf(sub2);
-			return this.string.substring(SP, TP);
-		},
-		removeFromBetween: function (sub1, sub2) {
-			if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
-				return false;
-			var removal = sub1 + this.getFromBetween(sub1, sub2) + sub2;
-			this.string = this.string.replace(removal, "");
-		},
-		getAllResults: function (sub1, sub2) {
-			if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
-				return;
-			var result = this.getFromBetween(sub1, sub2);
-			this.results.push(result);
-			this.removeFromBetween(sub1, sub2);
-			if (this.string.indexOf(sub1) > -1 && this.string.indexOf(sub2) > -1) {
-				this.getAllResults(sub1, sub2);
-			} else return;
-		},
-		get: function (string, sub1, sub2) {
-			this.results = [];
-			this.string = string;
-			this.getAllResults(sub1, sub2);
-			return this.results;
-		},
-	};
-
-	async function appendScript(scriptText) {
+	async function appendScript(scriptText, name) {
 		return new Promise(function (resolve, reject) {
 			var entryBlob = new Blob([scriptText], { type: "text/javascript" });
 			var scriptTag = document.createElement("script");
 			scriptTag.setAttribute("src", URL.createObjectURL(entryBlob));
 			scriptTag.addEventListener("load", function () {
-				console.log("loaded");
+				console.log(
+					"loaded module script " +
+						name +
+						" in " +
+						performance.now().toString() +
+						"ms"
+				);
 				resolve();
 			});
 			document.querySelector("body").appendChild(scriptTag);
@@ -58,7 +28,7 @@
 	}
 
 	async function findAsModule(module) {
-		var modulePath = "browsequire/" + module;
+		var modulePath = "browsequire/modules/" + module;
 		var packageRequest = await fetch(modulePath + "/package.json");
 		if (packageRequest.status === 200) {
 			var main = (await packageRequest.json()).main;
@@ -69,18 +39,26 @@
 	}
 
 	function fixRequire(text) {
-		var temp = getFromBetween.get(text, "require(", ")");
-		var temp2 = temp.map((text) => `require(${text})`);
-		for (var i = 0; i < temp.length; i++) {
-			text = text.replace(temp2[i], `(await ${temp2[i]})`);
+		var regex = /require\((.*)\)/;
+		var requireOccurences = [];
+		var temp = text;
+		while (temp.match(regex)) {
+			requireOccurences.push(temp.match(regex)[0]);
+			temp = temp.split(temp.match(regex)[0])[1];
 		}
+		requireOccurences.map(function (string) {
+			text = text.replace(string, `(await ${string})`);
+		});
 		return text;
 	}
 
 	var require = async function (module) {
 		var mainScript = await findAsModule(module);
-		if (!mainScript) {
+		if (mainScript === false) {
 			mainScript = await findAsFile(module);
+		}
+		if (mainScript === false) {
+			throw new Error("could not find module " + module);
 		}
 		var encodedName = encodeURIComponent(module);
 		var mainScript = `(function(){
@@ -92,7 +70,7 @@
 				return this;
 			}
 		})(window)`;
-		await appendScript(mainScript);
+		await appendScript(mainScript, module);
 		var temp = {};
 		return (
 			await window.browsequire.scripts[encodedName].apply(temp, [require])
@@ -109,12 +87,15 @@
 				window.browsequire.start=async (require)=>{
 					${fixRequire(responseText)}
 			}`;
-			await appendScript(entryScript);
+			await appendScript(entryScript, "entry");
 			window.browsequire.start.apply(window, [require]);
+			console.log(
+				"browsequire completed in " + performance.now().toString() + "ms"
+			);
 		},
 	};
 
 	var buffer = document.createElement("script");
 	buffer.setAttribute("src", "buffer.js");
-	document.querySelector("body").appendChild("buffer");
+	document.querySelector("body").appendChild(buffer);
 })(window);
