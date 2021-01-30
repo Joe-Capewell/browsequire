@@ -10,8 +10,5 @@
 	"bin": "bins.js",
 	"author": "",
 	"license": "ISC",
-	"dependencies": {
-		"@dmuy/toast": "^2.0.2",
-		"fs-extra": "^9.1.0"
-	}
+	"dependencies": {}
 }

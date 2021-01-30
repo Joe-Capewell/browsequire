@@ -6,7 +6,7 @@ var command = process.argv[2];
 var dir = process.cwd();
 if (command === "init") {
 	console.log("copying browsequire...");
-	fs.mkdirSync("browsequire/modules", { recursive: true });
+	fs.mkdirSync(dir + "/browsequire", { recursive: true });
 	fs.createReadStream(__dirname + "/browsequire.js").pipe(
 		fs.createWriteStream(dir + "/browsequire/main.js")
 	);
@@ -17,16 +17,15 @@ if (command === "init") {
 } else if (command === "add") {
 	name = process.argv[3];
 	console.log("adding package " + name);
-	var child = spawn("npm", ["install", "--prefix", __dirname, name]);
+
+	fs.mkdirSync(dir + "/browsequire", { recursive: true });
+	var child = spawn("npm", ["install", "--prefix", dir + "/browsequire", name]);
 	child.stderr.on("data", function (data) {
 		console.log(data.toString("utf8"));
 	});
 	child.stdout.on("end", function () {
-		console.log("copying package");
-		installedPath = __dirname + "/node_modules/" + name;
-		installPath = dir + "/browsequire/modules/" + name;
-		fs.mkdirSync(dir + "/browsequire/modules/" + name, { recursive: true });
-		copyRecursive(installedPath, installPath);
+		fs.unlinkSync(dir + "/browsequire/package-lock.json");
+		console.log("done");
 	});
 } else {
 	console.log("command not found");
